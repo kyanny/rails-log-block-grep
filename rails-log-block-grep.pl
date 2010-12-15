@@ -2,9 +2,16 @@
 use strict;
 use warnings;
 use constant LENGTH => 256;
-use Pod::Usage;
+use Getopt::Long;
 
 $| = 1;
+
+GetOptions(
+    '-A=i' => \my $after,
+    '-B=i' => \my $before,
+);
+
+my (@after, @before);
 
 my $pattern = shift || pod2usage(2);
 my $buf;
@@ -20,9 +27,23 @@ while (read(STDIN, $buf, LENGTH)) {
                    /msox) {
         my $block = $&;
         undef $buffer;
-        if ($block =~ /$pattern/o) {
-            print $block;
+
+        if ($before) {
+            push @before, $block;
+            shift @before if scalar @before > $before;
         }
+
+        if ($block =~ /$pattern/o) {
+            print @before if @before;
+            print $block;
+            print @after if @after;
+        }
+
+        if ($after) {
+            push @after, $block;
+            shift @after if scalar @after > $after;
+        }
+
         undef $block;
     }
 }
