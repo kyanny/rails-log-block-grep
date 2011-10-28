@@ -3,6 +3,7 @@
 require 'optparse'
 
 ::Version = "0.0.1"
+::GREP_COLOR = "01;31" # bold red
 
 $stdout.sync = true
 Signal.trap(:INT, :EXIT)
@@ -58,23 +59,43 @@ class SimpleQueue
   alias :enq :push
 end
 
+# main function
 def main()
   # option
   options = {}
+  
   opts = OptionParser.new
   opts.banner = "Usage: #{$0} [OPTION]... PATTERN [FILE]..."
-  opts.on('-A NUM', '--after-context NUM', 'Print NUM blocks of trailing context after matching block.'){ |num|
+  
+  opts.on('-A NUM', '--after-context NUM', Integer, 'print NUM blocks of trailing context'){ |num|
     options['after_context'] = num
   }
-  opts.on('-B NUM', '--before-context NUM', 'Print NUM blocks of leading context before matching block.'){ |num|
+  
+  opts.on('-B NUM', '--before-context NUM', Integer, 'print NUM blocks of leading context'){ |num|
     options['before_context'] = num
   }
-  opts.on('-C NUM', '--context NUM', 'Print  NUM  blocks of output context.'){ |num|
+  
+  opts.on('-C NUM', '--context NUM', Integer, 'print NUM blocks of output context'){ |num|
     options['context'] = num
   }
-  opts.parse!
   
-  # pattern
+  opts.on('--colour [always|never|auto]', '--color [always|never|auto]', ["always", "never", "auto"], 'colorize matching string with GREP_COLOR variable. see grep(1) manpage.'){ |flag|
+    options['color'] = flag
+  }
+  
+  begin
+    opts.parse!
+  rescue OptionParser::InvalidArgument # --color without WHEN
+    options['color'] = "auto"
+  end
+  
+  # ARGV check - must include at least 2 args
+  unless ARGV.length >= 2
+    puts opts.help
+    exit!
+  end
+  
+  # extract pattern
   pattern = ARGV.shift
   unless pattern
     puts opts.help
@@ -85,6 +106,21 @@ def main()
   before_context = after_context = options["context"].to_i
   before_context = options["before_context"].to_i unless options["before_context"].nil?
   after_context  = options["after_context"].to_i  unless options["after_context"].nil?
+  
+  # color
+  case options["color"]
+  when "always"
+    colorize = colorize_pipe = true
+  when "never"
+    colorize = colorize_pipe = false
+  when "auto"
+    colorize = true
+    colorize_pipe = false
+  else
+    colorize = colorize_pipe = false
+  end
+
+  grep_color = ENV["GREP_COLOR"] || GREP_COLOR
   
   # queue
   before_queue = SimpleQueue.new(before_context)
@@ -120,7 +156,14 @@ def main()
       
       # matched block
       puts block.gsub(/#{pattern}/){ |match|
-        "\e[01;36m#{match}\e[0m"
+        # colorize or not
+        if     $stdout.tty? && colorize      # output to tty with color
+          "\e[#{grep_color}m#{match}\e[0m"
+        elsif !$stdout.tty? && colorize_pipe # output to pipe with color
+          "\e[#{grep_color}m#{match}\e[0m"
+        else                                 # output anywhere without color
+          match
+        end
       }
       
       # clear after context
