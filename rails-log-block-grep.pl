@@ -6,6 +6,16 @@ use Getopt::Long;
 
 $| = 1;
 
+print <<EOM;
+!!! WARNING !!!
+
+Sorry, this program is not maintained.
+May disappear in the future.
+Please use `rails-log-block-grep.rb' instead.
+
+EOM
+sleep 3;
+
 GetOptions(
     '-A=i' => \my $after,
     '-B=i' => \my $before,
