@@ -26,4 +26,4 @@ Ruby が必要です。 1.8.7 と 1.9.2 で動作を確認しています。
 
 ## Author
 
-Kensuke Nagae <kyanny at gmail dot com>
+Kensuke Nagae &lt;kyanny at gmail dot com&gt;
