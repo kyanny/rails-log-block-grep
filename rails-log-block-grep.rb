@@ -127,7 +127,21 @@ def main()
   after_queue  = SimpleQueue.new(after_context)
   
   # loop
-  while block = gets("") # paragraph mode
+  block = ''
+  buffer = ''
+  while gets("") # paragraph mode
+    buffer += $_
+    if (buffer =~ /^(
+                     Processing.*?(?=Processing)
+                     |
+                     Sent\smail:.*?(?=Sent\smail:)
+                     )
+                   /msox)
+      block = $&
+      buffer = ''
+    else
+      next
+    end
     
     # print separator when context is defined
     sep_done = false
