@@ -129,72 +129,76 @@ def main()
   # loop
   block = ''
   buffer = ''
-  while gets("") # paragraph mode
-    buffer += $_
-    if (buffer =~ /^(
-                     Processing.*?(?=Processing)
-                     |
-                     Sent\smail:.*?(?=Sent\smail:)
-                     )
-                   /msox)
-      block = $&
-      buffer = ''
-    else
-      next
-    end
-    
-    # print separator when context is defined
-    sep_done = false
-
-    # Ruby 1.9.2
-    if block.respond_to?(:encode)
-      block = block.encode("UTF-16BE", :invalid => :replace, :undef => :replace, :replace => '?').encode("UTF-8")
-    end
-    
-    # stack before context
-    if before_queue.max > 0
-      before_queue << block
-    end
-    
-    if block.match(/#{pattern}/o)
+  begin
+    while gets("") # paragraph mode
+      buffer += $_
+      if (buffer =~ /^(
+                       Processing.*?(?=Processing)
+                       |
+                       Sent\smail:.*?(?=Sent\smail:)
+                       )
+                     /muox)
+        block = $&
+        buffer = ''
+      else
+        next
+      end
       
-      # clear before context
-      if before_queue.length > 0
-        unless sep_done
-          puts "--"
-          sep_done = true
+      # print separator when context is defined
+      sep_done = false
+
+      # Ruby 1.9.2
+      if block.respond_to?(:encode)
+        block = block.encode("UTF-16BE", :invalid => :replace, :undef => :replace, :replace => '?').encode("UTF-8")
+      end
+      
+      # stack before context
+      if before_queue.max > 0
+        before_queue << block
+      end
+      
+      if block.match(/#{pattern}/o)
+        
+        # clear before context
+        if before_queue.length > 0
+          unless sep_done
+            puts "--"
+            sep_done = true
+          end
+          
+          puts before_queue.pop until before_queue.empty?
         end
         
-        puts before_queue.pop until before_queue.empty?
-      end
-      
-      # matched block
-      puts block.gsub(/#{pattern}/){ |match|
-        # colorize or not
-        if     $stdout.tty? && colorize      # output to tty with color
-          "\e[#{grep_color}m#{match}\e[0m"
-        elsif !$stdout.tty? && colorize_pipe # output to pipe with color
-          "\e[#{grep_color}m#{match}\e[0m"
-        else                                 # output anywhere without color
-          match
-        end
-      }
-      
-      # clear after context
-      if after_queue.length > 0
-        puts after_queue.pop until after_queue.empty?
-        unless sep_done
-          puts "--"
-          sep_done = true
+        # matched block
+        puts block.gsub(/#{pattern}/){ |match|
+          # colorize or not
+          if     $stdout.tty? && colorize      # output to tty with color
+            "\e[#{grep_color}m#{match}\e[0m"
+          elsif !$stdout.tty? && colorize_pipe # output to pipe with color
+            "\e[#{grep_color}m#{match}\e[0m"
+          else                                 # output anywhere without color
+            match
+          end
+        }
+        
+        # clear after context
+        if after_queue.length > 0
+          puts after_queue.pop until after_queue.empty?
+          unless sep_done
+            puts "--"
+            sep_done = true
+          end
         end
       end
-    end
 
-    # stack after context
-    if after_queue.max > 0
-      after_queue << block
+      # stack after context
+      if after_queue.max > 0
+        after_queue << block
+      end
+      
     end
-    
+  rescue Errno::EPIPE
+    return 0
   end
 end
 
