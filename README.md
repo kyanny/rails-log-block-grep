@@ -25,3 +25,7 @@ For bugs in the original script, please submit an issue to the Author's reposito
 ## Author
 
 Kensuke Nagae &lt;kyanny at gmail dot com&gt;
+
+## Contributor
+
+Brad Landers (@bradland)
