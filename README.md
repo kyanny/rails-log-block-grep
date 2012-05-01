@@ -1,28 +1,26 @@
 # rails-log-block-grep.rb
 
-Ruby on Rails のログを grep しやすくするプログラムです。
-grep(1) に比べて以下の点で優れています。
+Ruby on Rails log grep utility.
+More suitable than grep(1) because:
 
-- 行単位ではなくリクエスト単位でマッチできる
-- さらに、マッチしたリクエストの前後のリクエストも表示できる
+- Can match entire request blocks, rather than single lines
+- Can show the entire request that occurred before and after the matching request
 
 ## Install
 
-GitHub から実行ファイルをダウンロードしてください。
-必要であれば実行権限をつけて $PATH の通ったところに配置してください。
+Download from Github using curl. Save this somewhere in your $PATH with execute permissions if you'd like.
 
     $ curl -O https://raw.github.com/kyanny/rails-log-block-grep/master/rails-log-block-grep.rb
 
 ## Usage
 
-Ruby が必要です。 1.8.7 と 1.9.2 で動作を確認しています。
-具体的な実行方法はヘルプを参照してください。
+Requires Ruby. Confirmed to work with 1.9.2, 1.9.3, and 1.8.7. For specific usage, please refer to the help.
 
     $ ruby rails-log-block-grep.rb -h
 
 ## Issues
 
-もし不具合をみつけたら、 [https://github.com/kyanny/rails-log-block-grep/issues](https://github.com/kyanny/rails-log-block-grep/issues) にご連絡ください。
+For bugs in the original script, please submit an issue to the Author's repository [https://github.com/kyanny/rails-log-block-grep/issues](https://github.com/kyanny/rails-log-block-grep/issues).
 
 ## Author
 
