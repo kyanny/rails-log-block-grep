@@ -26,8 +26,9 @@ def main()
       options.separator = s
     end
 
-    opt.on("-h","--help","Print usage information.") do
-      puts opt_parser
+    opt.on_tail("-h","--help","Print usage information.") do
+      $stderr.puts opt_parser
+      exit 1
     end
   end
 
@@ -35,14 +36,14 @@ def main()
 
   # ARGV check - must include at least 2 args
   unless ARGV.length >= 2
-    puts opt_parser
+    $stderr.puts opt_parser
     exit!
   end
 
   # extract pattern
   pattern = ARGV.shift
   unless pattern
-    puts opt_parser
+    $stderr.puts opt_parser
     exit!
   end
 
@@ -65,37 +66,39 @@ def main()
   block = ''
   buffer = ''
   begin
-    while gets
-      # If the line begins with Started, we have a new block, so process the old and start a new buffer
-      if ($_ =~ /^Started.*?/uo)
-        block = buffer
-        buffer = $_
-      else
-        buffer += $_
+    while input = ARGF.gets
+      input.each_line do |line|
+        # If the line begins with Started, we have a new block, so process the old and start a new buffer
+        if (line =~ /^Started.*?/uo)
+          block = buffer
+          buffer = line
+        else
+          buffer += line
+        end
+
+        if block.match(/#{pattern}/muo)
+          # matched block
+          $stdout.puts block.gsub(/#{pattern}/){ |match|
+            # colorize or not
+            if     $stdout.tty? && colorize      # output to tty with color
+              "\e[#{grep_color}m#{match}\e[0m"
+            elsif !$stdout.tty? && colorize_pipe # output to pipe with color
+              "\e[#{grep_color}m#{match}\e[0m"
+            else                                 # output anywhere without color
+              match
+            end
+          }
+
+          # print separator
+          $stdout.puts "--" if options.separator
+        end
+
+        # clear block
+        block = ''
       end
-
-      if block.match(/#{pattern}/muo)
-        # matched block
-        puts block.gsub(/#{pattern}/){ |match|
-          # colorize or not
-          if     $stdout.tty? && colorize      # output to tty with color
-            "\e[#{grep_color}m#{match}\e[0m"
-          elsif !$stdout.tty? && colorize_pipe # output to pipe with color
-            "\e[#{grep_color}m#{match}\e[0m"
-          else                                 # output anywhere without color
-            match
-          end
-        }
-
-        # print separator
-        puts "--" if options.separator
-      end
-
-      # clear block
-      block = ''
     end
   rescue Errno::EPIPE
-    return 0
+    exit 74
   end
 end
 
