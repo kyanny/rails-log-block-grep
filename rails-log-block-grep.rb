@@ -1,114 +1,53 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require 'optparse'
+require 'ostruct'
 
-::Version = "0.0.1"
+::Version = "0.0.2"
 ::GREP_COLOR = "01;31" # bold red
 
 $stdout.sync = true
 Signal.trap(:INT, :EXIT)
 
-# SimpleQueue for context queue
-class SimpleQueue
-  def initialize(max)
-    @max = max
-    @queue = Array.new(max)
-  end
-
-  def clear
-    @queue = []
-  end
-
-  def empty?
-    @queue.empty?
-  end
-
-  def num_waitihg
-    raise NotImplementedError
-  end
-
-  def length
-    @queue.length
-  end
-  alias :size :length
-
-  def max
-    @max
-  end
-
-  def max=(n)
-    @max = n
-  end
-
-  def pop
-    @queue.shift
-  end
-  alias :shift :pop
-  alias :deq :pop
-
-  def push(*items)
-    items.each do |item|
-      @queue << item
-      if @queue.length > @max
-        @queue.shift
-      end
-    end
-    self
-  end
-  alias :<< :push
-  alias :enq :push
-end
-
 # main function
 def main()
   # option
-  options = {}
+  options = OpenStruct.new
+  options.color = 'auto'
 
-  opts = OptionParser.new
-  opts.banner = "Usage: #{$0} [OPTION]... PATTERN [FILE]..."
+  opt_parser = OptionParser.new do |opt|
+    opt.banner = "Usage: #{$0} [OPTION]... PATTERN [FILE]..."
 
-  opts.on('-A NUM', '--after-context NUM', Integer, 'print NUM blocks of trailing context'){ |num|
-    options['after_context'] = num
-  }
+    opt.on('-c [always|never|auto]', '--color [always|never|auto]', ["always", "never", "auto"], 'Colorize matching string with GREP_COLOR variable. See grep(1) manpage.') do |color|
+      options.color = color
+    end
 
-  opts.on('-B NUM', '--before-context NUM', Integer, 'print NUM blocks of leading context'){ |num|
-    options['before_context'] = num
-  }
+    opt.on('-s', '--[no-]seperator', 'Print a separator between records.') do |s|
+      options.separator = s
+    end
 
-  opts.on('-C NUM', '--context NUM', Integer, 'print NUM blocks of output context'){ |num|
-    options['context'] = num
-  }
-
-  opts.on('--colour [always|never|auto]', '--color [always|never|auto]', ["always", "never", "auto"], 'colorize matching string with GREP_COLOR variable. see grep(1) manpage.'){ |flag|
-    options['color'] = flag
-  }
-
-  begin
-    opts.parse!
-  rescue OptionParser::InvalidArgument # --color without WHEN
-    options['color'] = "auto"
+    opt.on("-h","--help","Print usage information.") do
+      puts opt_parser
+    end
   end
+
+  opt_parser.parse!
 
   # ARGV check - must include at least 2 args
   unless ARGV.length >= 2
-    puts opts.help
+    puts opt_parser
     exit!
   end
 
   # extract pattern
   pattern = ARGV.shift
   unless pattern
-    puts opts.help
+    puts opt_parser
     exit!
   end
 
-  # context
-  before_context = after_context = options["context"].to_i
-  before_context = options["before_context"].to_i unless options["before_context"].nil?
-  after_context  = options["after_context"].to_i  unless options["after_context"].nil?
-
   # color
-  case options["color"]
+  case options.color
   when "always"
     colorize = colorize_pipe = true
   when "never"
@@ -122,53 +61,20 @@ def main()
 
   grep_color = ENV["GREP_COLOR"] || GREP_COLOR
 
-  # queue
-  before_queue = SimpleQueue.new(before_context)
-  after_queue  = SimpleQueue.new(after_context)
-
   # loop
   block = ''
   buffer = ''
   begin
-    while gets("") # paragraph mode
-      buffer += $_
-      if (buffer =~ /^(
-                       Processing.*?(?=Processing)
-                       |
-                       Sent\smail:.*?(?=Sent\smail:)
-                       )
-                     /muox)
-        block = $&
-        buffer = ''
+    while gets
+      # If the line begins with Started, we have a new block, so process the old and start a new buffer
+      if ($_ =~ /^Started.*?/uo)
+        block = buffer
+        buffer = $_
       else
-        next
+        buffer += $_
       end
 
-      # print separator when context is defined
-      sep_done = false
-
-      # Ruby 1.9.2
-      if block.respond_to?(:encode)
-        block = block.encode("UTF-16BE", :invalid => :replace, :undef => :replace, :replace => '?').encode("UTF-8")
-      end
-
-      # stack before context
-      if before_queue.max > 0
-        before_queue << block
-      end
-
-      if block.match(/#{pattern}/o)
-
-        # clear before context
-        if before_queue.length > 0
-          unless sep_done
-            puts "--"
-            sep_done = true
-          end
-
-          puts before_queue.pop until before_queue.empty?
-        end
-
+      if block.match(/#{pattern}/muo)
         # matched block
         puts block.gsub(/#{pattern}/){ |match|
           # colorize or not
@@ -181,21 +87,12 @@ def main()
           end
         }
 
-        # clear after context
-        if after_queue.length > 0
-          puts after_queue.pop until after_queue.empty?
-          unless sep_done
-            puts "--"
-            sep_done = true
-          end
-        end
+        # print separator
+        puts "--" if options.separator
       end
 
-      # stack after context
-      if after_queue.max > 0
-        after_queue << block
-      end
-
+      # clear block
+      block = ''
     end
   rescue Errno::EPIPE
     return 0
