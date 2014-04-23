@@ -61,8 +61,6 @@ def main()
 
   grep_color = ENV["GREP_COLOR"] || GREP_COLOR
 
-  puts "\nSearching for pattern: #{pattern}\n\n"
-
   # loop
   block = ''
   buffer = ''
