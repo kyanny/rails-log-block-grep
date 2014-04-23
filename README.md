@@ -1,10 +1,8 @@
 # rails-log-block-grep.rb
 
 Ruby on Rails log grep utility.
-More suitable than grep(1) because:
 
-- Can match entire request blocks, rather than single lines
-- Can show the entire request that occurred before and after the matching request
+More suitable than grep(1) because it can match entire request blocks, rather than single lines.
 
 ## Install
 
@@ -14,7 +12,7 @@ Download from Github using curl. Save this somewhere in your $PATH with execute 
 
 ## Usage
 
-Requires Ruby. Confirmed to work with 1.9.2, 1.9.3, and 1.8.7. For specific usage, please refer to the help.
+Requires Ruby. Confirmed to work with 1.9.3, and 2.1.1. For specific usage, please refer to the help.
 
     $ ruby rails-log-block-grep.rb -h
 
