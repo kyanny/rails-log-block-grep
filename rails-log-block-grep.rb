@@ -91,6 +91,7 @@ class RailsLogBlockGrep
             block = buffer
             buffer = line
           elsif ARGF.eof?
+            buffer += line
             block = buffer
           else
             buffer += line
