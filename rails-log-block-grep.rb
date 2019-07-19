@@ -90,6 +90,8 @@ class RailsLogBlockGrep
           if (line =~ /^Started.*?/uo)
             block = buffer
             buffer = line
+          elsif ARGF.eof?
+            block = buffer
           else
             buffer += line
           end
